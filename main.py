@@ -1212,7 +1212,10 @@ class GeminiSTTBridge(Star):
                         prompt_parts = []
                         if user_text:
                             prompt_parts.append(user_text)
-                        prompt_parts.append("以下是带有合适标点符号的中文转写文本：")
+                        prompt_parts.append(
+                            "你好，请问今天天气怎么样？我想出去散步，但是不知道会不会下雨。"
+                            "好的，没问题，我马上帮你查一下。对了，你吃饭了吗？"
+                        )
                         form.add_field("prompt", " ".join(prompt_parts))
 
                         session = await self._get_session()
