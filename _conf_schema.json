@@ -25,6 +25,13 @@
     "hint": "模型一定要支持语音识别",
     "default": ""
   },
+  "stt_provider": {
+    "description": "STT 引擎",
+    "type": "string",
+    "options": ["gemini", "whisper"],
+    "hint": "gemini=Gemini原生API；whisper=OpenAI Whisper兼容API (/v1/audio/transcriptions)",
+    "default": "gemini"
+  },
   "debug_mode": {
     "description": "调试模式",
     "type": "bool",

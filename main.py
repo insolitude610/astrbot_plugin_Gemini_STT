@@ -109,6 +109,7 @@ class GeminiSTTBridge(Star):
         self.enable_get_record_fallback = bool(self._cfg("enable_get_record_fallback", True))
         self.allow_napcat_local_record_url = bool(self._cfg("allow_napcat_local_record_url", True))
         self.api_key_header = self._cfg("api_key_header", "bearer")
+        self.stt_provider = self._cfg("stt_provider", "gemini")
 
         # 路径前缀替换（多容器部署时 NapCat 上报路径与实际挂载路径不符）
         self.path_remap_from = str(self._cfg("path_remap_from", "") or "").strip()
@@ -1111,6 +1112,96 @@ class GeminiSTTBridge(Star):
         )
 
 
+    async def _call_stt(self, audio_b64: str, audio_mime: str, user_text: str) -> str:
+        if self.stt_provider == "whisper":
+            return await self._call_whisper_stt(audio_b64, audio_mime, user_text)
+        return await self._call_gemini_stt(audio_b64, audio_mime, user_text)
+
+    async def _call_whisper_stt(self, audio_b64: str, audio_mime: str, user_text: str) -> str:
+        api_url = self._cfg("api_url", "")
+        api_key = self._cfg("api_key", "")
+        model = self._cfg("model", "whisper-1")
+
+        if not api_url or not api_key:
+            self._d("api_url 或 api_key 未配置")
+            return ""
+
+        base = (api_url or "").rstrip("/")
+        if base.endswith("/v1/chat/completions"):
+            base = base[: -len("/v1/chat/completions")]
+        elif base.endswith("/v1"):
+            base = base[: -len("/v1")]
+        elif base.endswith("/gemini"):
+            base = base[: -len("/gemini")]
+        url = f"{base}/v1/audio/transcriptions"
+        self._d(f"Whisper URL: {url}")
+
+        headers = {}
+        if self.api_key_header == "query":
+            headers["Authorization"] = f"Bearer {api_key}"
+        elif self.api_key_header == "x-api-key":
+            headers["x-api-key"] = api_key
+        elif self.api_key_header == "api-key":
+            headers["api-key"] = api_key
+        else:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        tmp_path = os.path.join(tempfile.gettempdir(), f"gsv_whisper_{os.urandom(4).hex()}.mp3")
+        try:
+            audio_bytes = base64.b64decode(audio_b64)
+            with open(tmp_path, "wb") as f:
+                f.write(audio_bytes)
+
+            for i in range(self.retry_times + 1):
+                try:
+                    with open(tmp_path, "rb") as f:
+                        form = aiohttp.FormData()
+                        form.add_field("file", f, filename="audio.mp3", content_type=audio_mime)
+                        form.add_field("model", model)
+                        if user_text:
+                            form.add_field("prompt", user_text)
+
+                        session = await self._get_session()
+                        async with session.post(url, data=form, headers=headers) as resp:
+                            raw = await resp.text()
+
+                            if resp.status == 200:
+                                try:
+                                    data = json.loads(raw)
+                                except Exception:
+                                    self._d(f"Whisper返回非JSON: {raw[:200]}")
+                                    return ""
+                                text = data.get("text", "")
+                                if text and text.strip():
+                                    return text.strip()
+                                self._d("Whisper返回空text")
+                                return ""
+
+                            if (resp.status >= 600 or resp.status == 429) and i < self.retry_times:
+                                wait_sec = min(2**i, 8) + random.uniform(0, 0.3)
+                                self._d(f"Whisper {resp.status}，第{i + 1}次重试，等待{wait_sec:.2f}s")
+                                await asyncio.sleep(wait_sec)
+                                continue
+
+                            self._d(f"Whisper失败: {resp.status} - {raw[:300]}")
+                            return ""
+
+                except Exception as e:
+                    if i < self.retry_times:
+                        wait_sec = min(2**i, 8) + random.uniform(0, 0.3)
+                        self._d(f"Whisper异常重试({i + 1}): {e}，等待{wait_sec:.2f}s")
+                        await asyncio.sleep(wait_sec)
+                        continue
+                    self._d(f"Whisper异常: {e}")
+                    return ""
+            return ""
+        finally:
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception:
+                pass
+
     async def _call_gemini_stt(self, audio_b64: str, audio_mime: str, user_text: str) -> str:
         api_url = self._cfg("api_url", "")
         api_key = self._cfg("api_key", "")
@@ -1361,7 +1452,7 @@ class GeminiSTTBridge(Star):
                     yield r
                 return
 
-            stt_text = await self._call_gemini_stt(audio_b64, audio_mime, user_text)
+            stt_text = await self._call_stt(audio_b64, audio_mime, user_text)
             stt_text = self._clean_transcript(stt_text)
 
             if not stt_text:
