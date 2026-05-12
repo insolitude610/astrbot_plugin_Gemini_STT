@@ -110,7 +110,7 @@
       "simple",
       "rich"
     ],
-    "hint": "simple=仅原话转写；rich=附语言/语气/环境音/大意",
+    "hint": "simple=仅原话转写；rich=附语言/语气/环境音/大意（仅Gemini引擎支持，Whisper强制为simple）",
     "default": "simple"
   },
   "attach_voice_marker": {

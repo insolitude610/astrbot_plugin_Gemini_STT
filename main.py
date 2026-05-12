@@ -113,6 +113,10 @@ class GeminiSTTBridge(Star):
         self.enable_punctuation = bool(self._cfg("enable_punctuation", False))
         self.punctuation_provider_id = self._cfg("punctuation_provider_id", "").strip()
 
+        if self.stt_provider == "whisper" and self.output_mode == "rich":
+            self.output_mode = "simple"
+            logger.info("[GeminiSTTBridge] Whisper引擎不支持rich模式，已自动切换为simple")
+
         # 路径前缀替换（多容器部署时 NapCat 上报路径与实际挂载路径不符）
         self.path_remap_from = str(self._cfg("path_remap_from", "") or "").strip()
         self.path_remap_to = str(self._cfg("path_remap_to", "") or "").strip()
