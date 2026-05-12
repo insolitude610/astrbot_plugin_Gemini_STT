@@ -1118,58 +1118,36 @@ class GeminiSTTBridge(Star):
         if not self.enable_punctuation or not text:
             return text
 
-        api_url = self._cfg("api_url", "")
-        api_key = self._cfg("api_key", "")
-
-        if not api_url or not api_key:
-            return text
-
-        base = (api_url or "").rstrip("/")
-        for suffix in ["/v1/chat/completions", "/v1/audio/transcriptions", "/v1", "/gemini"]:
-            if base.endswith(suffix):
-                base = base[: -len(suffix)]
-                break
-        url = f"{base}/v1/chat/completions"
-
-        headers = {"Content-Type": "application/json"}
-        if self.api_key_header == "query":
-            headers["Authorization"] = f"Bearer {api_key}"
-        elif self.api_key_header == "x-api-key":
-            headers["x-api-key"] = api_key
-        elif self.api_key_header == "api-key":
-            headers["api-key"] = api_key
-        else:
-            headers["Authorization"] = f"Bearer {api_key}"
-
-        instruction = (
-            "请为以下文本添加合适的标点符号（逗号、句号、问号、感叹号等），"
-            "不要修改任何文字内容，不要添加额外解释，直接输出添加标点后的文本："
-        )
-
-        payload = {
-            "model": self.punctuation_model,
-            "messages": [
-                {"role": "user", "content": f"{instruction}\n\n{text}"}
-            ],
-            "temperature": 0.1,
-            "max_tokens": max(len(text) * 4, 256),
-        }
-
         try:
-            session = await self._get_session()
-            async with session.post(url, headers=headers, json=payload) as resp:
-                raw = await resp.text()
-                if resp.status == 200:
-                    try:
-                        data = json.loads(raw)
-                        result = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                        if result.strip():
-                            self._d(f"标点修复完成: {result[:120]}")
-                            return result.strip()
-                    except Exception:
-                        self._d(f"标点修复返回非JSON: {raw[:200]}")
-                else:
-                    self._d(f"标点修复请求失败: {resp.status} - {raw[:200]}")
+            from astrbot.core.provider.entities import ProviderType
+
+            provider = self.context.provider_manager.get_using_provider(
+                ProviderType.CHAT_COMPLETION
+            )
+            if not provider:
+                self._d("标点修复: 未找到AstrBot聊天提供商，跳过")
+                return text
+
+            provider_id = provider.meta().id
+            instruction = (
+                "请为以下文本添加合适的标点符号（逗号、句号、问号、感叹号等），"
+                "不要修改任何文字内容，不要添加额外解释，直接输出添加标点后的文本："
+            )
+
+            response = await self.context.llm_generate(
+                chat_provider_id=provider_id,
+                prompt=f"{instruction}\n\n{text}",
+                system_prompt="你是一个专业的文本标点修复助手。唯一任务是给输入文本添加合适的标点符号，直接输出结果。",
+                model=self.punctuation_model,
+                temperature=0.1,
+                max_tokens=max(len(text) * 4, 256),
+            )
+
+            result = response.completion_text
+            if result and result.strip():
+                self._d(f"标点修复完成: {result[:120]}")
+                return result.strip()
+            self._d("标点修复返回空内容")
         except Exception as e:
             self._d(f"标点修复异常: {e}")
 
