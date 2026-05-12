@@ -110,6 +110,8 @@ class GeminiSTTBridge(Star):
         self.allow_napcat_local_record_url = bool(self._cfg("allow_napcat_local_record_url", True))
         self.api_key_header = self._cfg("api_key_header", "bearer")
         self.stt_provider = self._cfg("stt_provider", "gemini")
+        self.enable_punctuation = bool(self._cfg("enable_punctuation", False))
+        self.punctuation_model = self._cfg("punctuation_model", "gpt-3.5-turbo")
 
         # 路径前缀替换（多容器部署时 NapCat 上报路径与实际挂载路径不符）
         self.path_remap_from = str(self._cfg("path_remap_from", "") or "").strip()
@@ -1112,6 +1114,67 @@ class GeminiSTTBridge(Star):
         )
 
 
+    async def _restore_punctuation(self, text: str) -> str:
+        if not self.enable_punctuation or not text:
+            return text
+
+        api_url = self._cfg("api_url", "")
+        api_key = self._cfg("api_key", "")
+
+        if not api_url or not api_key:
+            return text
+
+        base = (api_url or "").rstrip("/")
+        for suffix in ["/v1/chat/completions", "/v1/audio/transcriptions", "/v1", "/gemini"]:
+            if base.endswith(suffix):
+                base = base[: -len(suffix)]
+                break
+        url = f"{base}/v1/chat/completions"
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_key_header == "query":
+            headers["Authorization"] = f"Bearer {api_key}"
+        elif self.api_key_header == "x-api-key":
+            headers["x-api-key"] = api_key
+        elif self.api_key_header == "api-key":
+            headers["api-key"] = api_key
+        else:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        instruction = (
+            "请为以下文本添加合适的标点符号（逗号、句号、问号、感叹号等），"
+            "不要修改任何文字内容，不要添加额外解释，直接输出添加标点后的文本："
+        )
+
+        payload = {
+            "model": self.punctuation_model,
+            "messages": [
+                {"role": "user", "content": f"{instruction}\n\n{text}"}
+            ],
+            "temperature": 0.1,
+            "max_tokens": max(len(text) * 4, 256),
+        }
+
+        try:
+            session = await self._get_session()
+            async with session.post(url, headers=headers, json=payload) as resp:
+                raw = await resp.text()
+                if resp.status == 200:
+                    try:
+                        data = json.loads(raw)
+                        result = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                        if result.strip():
+                            self._d(f"标点修复完成: {result[:120]}")
+                            return result.strip()
+                    except Exception:
+                        self._d(f"标点修复返回非JSON: {raw[:200]}")
+                else:
+                    self._d(f"标点修复请求失败: {resp.status} - {raw[:200]}")
+        except Exception as e:
+            self._d(f"标点修复异常: {e}")
+
+        return text
+
     async def _call_stt(self, audio_b64: str, audio_mime: str, user_text: str) -> str:
         if self.stt_provider == "whisper":
             return await self._call_whisper_stt(audio_b64, audio_mime, user_text)
@@ -1467,6 +1530,8 @@ class GeminiSTTBridge(Star):
                 logger.warning("[GeminiSTTBridge] 检测到空白语音幻觉，使用兜底转写替代")
                 stt_text = "（未检测到有效语音内容，可能为空白或静音语音）"
 
+            if self.enable_punctuation:
+                stt_text = await self._restore_punctuation(stt_text)
 
             final_text = self._build_final_text_by_mode(stt_text)
             if not final_text:

@@ -38,6 +38,18 @@
     "hint": "gemini=Gemini原生API；whisper=OpenAI Whisper兼容API (/v1/audio/transcriptions)",
     "default": "gemini"
   },
+  "enable_punctuation": {
+    "description": "启用标点符号修复",
+    "type": "bool",
+    "hint": "STT转写结果通常缺少标点，开启后会再调一次LLM为文本添加逗号、句号等标点",
+    "default": false
+  },
+  "punctuation_model": {
+    "description": "标点修复用模型",
+    "type": "string",
+    "hint": "启用标点修复时使用的模型，建议用轻量模型如 gpt-3.5-turbo",
+    "default": "gpt-3.5-turbo"
+  },
   "debug_mode": {
     "description": "调试模式",
     "type": "bool",
