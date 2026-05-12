@@ -1124,8 +1124,8 @@ class GeminiSTTBridge(Star):
         self._d(f"Gemini URL: {url}")
 
         headers = {"Content-Type": "application/json"}
-        if self.api_key_header == "bearer":
-            headers["Authorization"] = f"Bearer {api_key}"
+        if self.api_key_header == "query":
+            url += ("&" if "?" in url else "?") + f"key={api_key}"
         elif self.api_key_header == "x-api-key":
             headers["x-api-key"] = api_key
         elif self.api_key_header == "api-key":

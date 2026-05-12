@@ -15,8 +15,8 @@
   "api_key_header": {
     "description": "API Key 传递方式",
     "type": "string",
-    "options": ["bearer", "x-api-key", "api-key"],
-    "hint": "bearer=Authorization: Bearer xxx；x-api-key/api-key=自定义Header。aihubmix的/gemini/端点可能需用 x-api-key",
+    "options": ["bearer", "x-api-key", "api-key", "query"],
+    "hint": "bearer/x-api-key/api-key=Header传参；query=URL查询参数(?key=xxx)。Google原生Gemini用query方式，aihubmix的/gemini/端点可能需要此方式",
     "default": "bearer"
   },
   "model": {
