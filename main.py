@@ -107,6 +107,7 @@ class GeminiSTTBridge(Star):
         self.voice_file_wait_sec = int(self._cfg("voice_file_wait_sec", 10))
         self.enable_get_record_fallback = bool(self._cfg("enable_get_record_fallback", True))
         self.allow_napcat_local_record_url = bool(self._cfg("allow_napcat_local_record_url", True))
+        self.api_key_header = self._cfg("api_key_header", "bearer")
 
         # 路径前缀替换（多容器部署时 NapCat 上报路径与实际挂载路径不符）
         self.path_remap_from = str(self._cfg("path_remap_from", "") or "").strip()
@@ -1122,10 +1123,15 @@ class GeminiSTTBridge(Star):
         url = self._build_gemini_url(api_url, model)
         self._d(f"Gemini URL: {url}")
 
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
+        if self.api_key_header == "bearer":
+            headers["Authorization"] = f"Bearer {api_key}"
+        elif self.api_key_header == "x-api-key":
+            headers["x-api-key"] = api_key
+        elif self.api_key_header == "api-key":
+            headers["api-key"] = api_key
+        else:
+            headers["Authorization"] = f"Bearer {api_key}"
 
         stt_instruction = self._build_stt_instruction()
         if user_text:

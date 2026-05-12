@@ -12,6 +12,13 @@
     "default": "",
     "obvious_hint": true
   },
+  "api_key_header": {
+    "description": "API Key 传递方式",
+    "type": "string",
+    "options": ["bearer", "x-api-key", "api-key"],
+    "hint": "bearer=Authorization: Bearer xxx；x-api-key/api-key=自定义Header。aihubmix的/gemini/端点可能需用 x-api-key",
+    "default": "bearer"
+  },
   "model": {
     "description": "模型ID",
     "type": "string",
