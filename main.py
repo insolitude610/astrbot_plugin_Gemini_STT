@@ -111,7 +111,7 @@ class GeminiSTTBridge(Star):
         self.api_key_header = self._cfg("api_key_header", "bearer")
         self.stt_provider = self._cfg("stt_provider", "gemini")
         self.enable_punctuation = bool(self._cfg("enable_punctuation", False))
-        self.punctuation_model = self._cfg("punctuation_model", "gpt-3.5-turbo")
+        self.punctuation_provider_id = self._cfg("punctuation_provider_id", "").strip()
 
         # 路径前缀替换（多容器部署时 NapCat 上报路径与实际挂载路径不符）
         self.path_remap_from = str(self._cfg("path_remap_from", "") or "").strip()
@@ -1121,14 +1121,23 @@ class GeminiSTTBridge(Star):
         try:
             from astrbot.core.provider.entities import ProviderType
 
-            provider = self.context.provider_manager.get_using_provider(
-                ProviderType.CHAT_COMPLETION
-            )
-            if not provider:
-                self._d("标点修复: 未找到AstrBot聊天提供商，跳过")
-                return text
+            if self.punctuation_provider_id:
+                provider = await self.context.provider_manager.get_provider_by_id(
+                    self.punctuation_provider_id
+                )
+                if not provider:
+                    self._d(f"标点修复: 指定提供商 {self.punctuation_provider_id} 未找到，跳过")
+                    return text
+                provider_id = self.punctuation_provider_id
+            else:
+                provider = self.context.provider_manager.get_using_provider(
+                    ProviderType.CHAT_COMPLETION
+                )
+                if not provider:
+                    self._d("标点修复: 未找到AstrBot聊天提供商，跳过")
+                    return text
+                provider_id = provider.meta().id
 
-            provider_id = provider.meta().id
             instruction = (
                 "请为以下文本添加合适的标点符号（逗号、句号、问号、感叹号等），"
                 "不要修改任何文字内容，不要添加额外解释，直接输出添加标点后的文本："
@@ -1138,9 +1147,6 @@ class GeminiSTTBridge(Star):
                 chat_provider_id=provider_id,
                 prompt=f"{instruction}\n\n{text}",
                 system_prompt="你是一个专业的文本标点修复助手。唯一任务是给输入文本添加合适的标点符号，直接输出结果。",
-                model=self.punctuation_model,
-                temperature=0.1,
-                max_tokens=max(len(text) * 4, 256),
             )
 
             result = response.completion_text
