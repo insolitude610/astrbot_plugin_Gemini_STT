@@ -1215,6 +1215,8 @@ class GeminiSTTBridge(Star):
                         prompt_parts.append(
                             "你好，请问今天天气怎么样？我想出去散步，但是不知道会不会下雨。"
                             "好的，没问题，我马上帮你查一下。对了，你吃饭了吗？"
+                            "Hello, how are you doing today? I was wondering if you'd like to grab a coffee later."
+                            "Sure, that sounds great! Let's meet at the usual place around 3 PM, shall we?"
                         )
                         form.add_field("prompt", " ".join(prompt_parts))
 
