@@ -1112,7 +1112,7 @@ class GeminiSTTBridge(Star):
 
         return (
             "你是一个极为敏感的语音转写器。"
-            "若音频中有人说话，直接输出原话纯文本，无需任何格式。"
+            "若音频中有人说话，直接输出带合适标点符号的原话纯文本，无需任何格式。"
             "若音频中无人说话，输出一句简短描述，例如：用户未说话，环境为轻微键盘声、室内安静。"
             "不要加任何标题、编号或Markdown格式。"
         )
@@ -1209,8 +1209,11 @@ class GeminiSTTBridge(Star):
                         form = aiohttp.FormData()
                         form.add_field("file", f, filename="audio.mp3", content_type=audio_mime)
                         form.add_field("model", model)
+                        prompt_parts = []
                         if user_text:
-                            form.add_field("prompt", user_text)
+                            prompt_parts.append(user_text)
+                        prompt_parts.append("以下是带有合适标点符号的中文转写文本：")
+                        form.add_field("prompt", " ".join(prompt_parts))
 
                         session = await self._get_session()
                         async with session.post(url, data=form, headers=headers) as resp:
