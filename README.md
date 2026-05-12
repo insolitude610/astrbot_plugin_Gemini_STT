@@ -1,27 +1,18 @@
-# Gemini STT Bridge for AstrBot
+# Gemini STT Bridge for AstrBot (社区魔改版)
+
+> 基于原版 [Weather-719/astrbot_plugin_Gemini_STT](https://github.com/Weather-719/astrbot_plugin_Gemini_STT) v2.3.6 二次开发
 
 # 注意现在只有使用never模式才可以正常使用！
 
 一个面向 AstrBot 的语音桥接插件：  
 **将语音消息自动转写为文本，并交由框架继续按正常会话流程回复。**
 
-> 插件定位：只做“语音识别 + 转发”，不抢框架人格回复逻辑。  
+> 插件定位：只做"语音识别 + 转发"，不抢框架人格回复逻辑。  
 > 目标体验：**语音输入 ≈ 自动帮你打字输入**。
 
 ---
 
-## ✨ 项目目标
-
-本插件用于解决以下场景：
-
-- 用户发送语音后，机器人能够理解语音内容并正常回复；
-- 保留原有 AstrBot 人格、记忆、工具链；
-- 支持复杂插件生态下的可控接入（群聊白名单、失败策略、输出模式等）；
-- 可通过配置灵活调节行为（DIY 强）。
-
----
-
-## 🔧 核心特性
+## 🔧 原版核心特性
 
 - 🎤 支持语音输入自动转写（`silk / amr / wav / mp3`）
 - 🔁 转写结果自动转发给 AstrBot 框架（`request_llm`）
@@ -36,23 +27,46 @@
 
 ---
 
+## 🚀 魔改版新增功能
+
+### 1. API 认证方式可选
+新增 `api_key_header` 配置项，支持四种认证方式：
+- `bearer`：`Authorization: Bearer xxx`
+- `x-api-key`：`x-api-key: xxx`
+- `api-key`：`api-key: xxx`
+- `query`：URL 查询参数 `?key=xxx`（Google Gemini 原生格式，适配 aihubmix 等中转站的 `/gemini/` 端点）
+
+### 2. Whisper STT 引擎支持
+新增 `stt_provider` 配置项，可选择 STT 引擎：
+- `gemini`：Gemini 原生 API（`/v1beta/models/...:generateContent`）
+- `whisper`：OpenAI Whisper 兼容 API（`/v1/audio/transcriptions`，multipart form-data）
+
+### 3. 独立模型 ID 配置
+将原版单一的 `model` 配置拆分为：
+- `gemini_model`：Gemini 引擎专用模型 ID
+- `whisper_model`：Whisper 引擎专用模型 ID
+切换引擎时无需手动改模型名。
+
+### 4. 跳过本地文件等待
+新增 `bypass_local_file` 开关。当 NapCat 与 AstrBot 不在同一容器/机器、本地文件路径不可达时，开启后直接走 `get_record` API 的 base64 兜底，免除 10 秒等待。
+
+### 5. 标点符号修复
+新增 `enable_punctuation` 开关。开启后 STT 转写结果会再调一次 AstrBot 的提供商为其添加逗号、句号等标点符号（Whisper 等引擎转写结果通常无标点）。可通过 `punctuation_provider_id` 指定提供商，留空则自动使用默认聊天提供商。
+
+### 6. Rich 模式提示词修正
+将原版 rich 模式提示词中 "以下6项" 修正为 "以下5项"，与实际的5个输出维度匹配。
+
+---
+
 ## 🚀 工作流程
 
 1. 插件高优先级接收消息；
 2. 非语音消息：直接放行，不干预；
 3. 语音消息：识别并转写；
 4. 按配置生成转发内容（simple/rich）；
-5. 调用框架 `request_llm` 转发；
-6. 框架继续标准处理链（人格、记忆、后处理等）。
-
----
-
-## 🧱 设计原则（重要）
-
-- ✅ 插件只做桥接，不做最终人格回复；
-- ✅ 语音成功后可拦截原始语音事件，避免二次处理；
-- ✅ 识别失败行为可控（可放行、可拦截、可提示）；
-- ✅ 配置优先，便于在不同插件组合下调参。
+5. （可选）标点修复：调用 AstrBot LLM 添加标点；
+6. 调用框架 `request_llm` 转发；
+7. 框架继续标准处理链（人格、记忆、后处理等）。
 
 ---
 
@@ -61,51 +75,50 @@
 - Python 3.10+
 - `aiohttp`
 - `pilk`（可选，处理 silk 时建议安装）
-- `ffmpeg`（建议安装并加入系统 PATH）
 - `ffmpeg`（需自行安装并加入环境变量）
 
 ---
 
-## ⚠️ 已知问题（持续优化中）
-在复杂插件链路下，可能出现以下情况：
-
-偶发双链路处理（同一语音被重复处理） 已解决和SpectreCore一起会有问题
-
-某些下游钩子（防抖/注入防护）可能终止 LLM 请求导致空回复
-
----
-
 ## ⚙️ 关键配置说明
-1) 语音接管与事件链路
-stop_other_handlers：是否阻止后续插件继续处理原语音
 
-stop_event_timing：拦截时机（before_stt / after_stt / never）
+### 新增配置项
 
-on_stt_fail：失败策略（如 pass / block / notify / notify_pass）
+| 配置项 | 说明 | 默认值 |
+|---|---|---|
+| `api_key_header` | API Key 传递方式（bearer/x-api-key/api-key/query） | `bearer` |
+| `stt_provider` | STT 引擎（gemini/whisper） | `gemini` |
+| `gemini_model` | Gemini 引擎模型 ID | `gemini-2.0-flash` |
+| `whisper_model` | Whisper 引擎模型 ID | `whisper-1` |
+| `bypass_local_file` | 跳过本地文件等待，直达 base64 兜底 | `false` |
+| `enable_punctuation` | 启用标点符号修复 | `false` |
+| `punctuation_provider_id` | 标点修复用提供商 ID（留空=自动使用默认） | 空 |
 
-2) 输出模式
-output_mode = simple：推荐生产默认，尽量接近用户打字输入
+### 配置切换示例
 
-output_mode = rich：适合需要语气、环境音、大意信息的场景
+**Gemini 原生模式（aihubmix）：**
+```
+api_url: https://aihubmix.com/gemini
+stt_provider: gemini
+api_key_header: query
+```
 
-3) 模型兼容
-enable_model_normalize = true：建议开启，可自动清洗带标签模型名
-
-4) 会话连续性
-use_current_conversation：是否绑定当前会话转发
-
-use_framework_tool_manager：是否传入框架工具管理器
+**Whisper 模式（aihubmix）：**
+```
+api_url: https://aihubmix.com/v1
+stt_provider: whisper
+api_key_header: bearer
+```
 
 ---
 
-## 🙏 欢迎贡献 / 求助方向
-欢迎熟悉 AstrBot 事件管线的开发者一起改进：
+## ⚠️ 已知问题
 
-request_llm 在复杂 hook 链中的稳定放行策略
+- NapCat 与 AstrBot 隔离部署时本地文件路径不可达（解决：开启 `bypass_local_file`）
+- 复杂插件链路下可能出现双链路处理
 
-simple 模式原话提取的鲁棒性
-
-语音输入与文本输入的体验一致性优化
-
-欢迎提交 Issue / PR
 ---
+
+## 🙏 致谢
+
+- 原版作者：[Weather-719](https://github.com/Weather-719)
+- 原版仓库：https://github.com/Weather-719/astrbot_plugin_Gemini_STT
