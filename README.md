@@ -41,7 +41,7 @@
 - `gemini`：Gemini 原生 API（`/v1beta/models/...:generateContent`）
 - `whisper`：OpenAI Whisper 兼容 API（`/v1/audio/transcriptions`，multipart form-data）
 
-> ⚠️ Whisper 引擎只支持纯文本转写，`output_mode=rich` 的 5 维度分析（语言/情绪/环境音/大意）仅在 Gemini 引擎下有效。选择 Whisper 时插件自动强制 `simple` 模式。
+> ⚠️ Whisper 引擎只支持纯文本转写，`output_mode=rich` 的 5 维度分析（语言/情绪/环境音/大意）仅在 Gemini 引擎下有效。选择 Whisper 时插件自动强制 `simple` 模式，并自动启用标点修复（Whisper 转写无标点符号）。
 
 ### 3. 独立模型 ID 配置
 将原版单一的 `model` 配置拆分为：

@@ -41,7 +41,7 @@
   "enable_punctuation": {
     "description": "启用标点符号修复",
     "type": "bool",
-    "hint": "STT转写结果通常缺少标点，开启后会再调一次LLM为文本添加逗号、句号等标点",
+    "hint": "Whisper引擎转写无标点，选Whisper时自动启用；Gemini引擎已自带标点，可不开启",
     "default": false
   },
   "punctuation_provider_id": {
