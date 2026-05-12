@@ -1120,7 +1120,7 @@ class GeminiSTTBridge(Star):
     async def _call_whisper_stt(self, audio_b64: str, audio_mime: str, user_text: str) -> str:
         api_url = self._cfg("api_url", "")
         api_key = self._cfg("api_key", "")
-        model = self._cfg("model", "whisper-1")
+        model = self._cfg("whisper_model", "whisper-1")
 
         if not api_url or not api_key:
             self._d("api_url 或 api_key 未配置")
@@ -1205,7 +1205,7 @@ class GeminiSTTBridge(Star):
     async def _call_gemini_stt(self, audio_b64: str, audio_mime: str, user_text: str) -> str:
         api_url = self._cfg("api_url", "")
         api_key = self._cfg("api_key", "")
-        raw_model = self._cfg("model", "gemini-2.0-flash")
+        raw_model = self._cfg("gemini_model") or self._cfg("model") or "gemini-2.0-flash"
         model = self._normalize_model_name(raw_model) if self.enable_model_normalize else raw_model.strip()
 
         if not api_url or not api_key:

@@ -19,11 +19,17 @@
     "hint": "bearer/x-api-key/api-key=Header传参；query=URL查询参数(?key=xxx)。Google原生Gemini用query方式，aihubmix的/gemini/端点可能需要此方式",
     "default": "bearer"
   },
-  "model": {
-    "description": "模型ID",
+  "gemini_model": {
+    "description": "Gemini 模型ID",
     "type": "string",
-    "hint": "模型一定要支持语音识别",
-    "default": ""
+    "hint": "stt_provider=gemini 时使用，如 gemini-2.0-flash",
+    "default": "gemini-2.0-flash"
+  },
+  "whisper_model": {
+    "description": "Whisper 模型ID",
+    "type": "string",
+    "hint": "stt_provider=whisper 时使用，如 whisper-1",
+    "default": "whisper-1"
   },
   "stt_provider": {
     "description": "STT 引擎",
