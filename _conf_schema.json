@@ -160,6 +160,12 @@
     "hint": "容器/慢磁盘场景下等待语音文件落盘，建议 5~15",
     "default": 10
   },
+  "bypass_local_file": {
+    "description": "跳过本地文件等待，直接用get_record兜底",
+    "type": "bool",
+    "hint": "当NapCat与AstrBot不在同一容器/机器，本地路径始终不可用时开启，免除等待秒数",
+    "default": false
+  },
   "enable_get_record_fallback": {
     "description": "启用 get_record 兜底（可自动配置）",
     "type": "bool",

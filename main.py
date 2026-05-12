@@ -105,6 +105,7 @@ class GeminiSTTBridge(Star):
 
         # 本地文件等待/兜底策略
         self.voice_file_wait_sec = int(self._cfg("voice_file_wait_sec", 10))
+        self.bypass_local_file = bool(self._cfg("bypass_local_file", False))
         self.enable_get_record_fallback = bool(self._cfg("enable_get_record_fallback", True))
         self.allow_napcat_local_record_url = bool(self._cfg("allow_napcat_local_record_url", True))
         self.api_key_header = self._cfg("api_key_header", "bearer")
@@ -974,7 +975,7 @@ class GeminiSTTBridge(Star):
                 return p
 
         # 2) 本地路径等待落盘（先做路径前缀替换，解决多容器挂载路径不一致问题）
-        if raw:
+        if raw and not self.bypass_local_file:
             raw = self._remap_local_path(raw)
             original_path = os.path.realpath(os.path.abspath(raw))
             wait_sec = max(0, self.voice_file_wait_sec)
