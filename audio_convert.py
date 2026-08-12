@@ -45,6 +45,9 @@ def find_ffmpeg(custom_path: str = "", debug_log=None) -> str:
             bn = os.path.basename(custom).lower()
             if bn in ("ffmpeg", "ffmpeg.exe"):
                 return custom
+            if debug_log:
+                debug_log(f"ffmpeg可执行名异常: {bn}")
+            return ""
         if debug_log:
             debug_log(f"自定义ffmpeg_path不可执行或不存在: {custom}")
 
