@@ -25,7 +25,7 @@ from stt_client import STTClient
 from audio_source import AudioSourceResolver
 
 
-@register("Gemini_STT", "政ひかりはる", "Gemini语音转写桥接到框架LLM", "2.3.6")
+@register("Gemini_STT", "政ひかりはる", "Gemini语音转写桥接到框架LLM", "2.3.7")
 class GeminiSTTBridge(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
@@ -49,7 +49,7 @@ class GeminiSTTBridge(Star):
         self._auto_discover_allowed_dirs()
         self._auto_remap_pairs: List[tuple] = self.audio_source.build_auto_remap_pairs()
 
-        logger.info("[GeminiSTTBridge] 插件已加载 v2.3.6")
+        logger.info("[GeminiSTTBridge] 插件已加载 v2.3.7")
         logger.info(
             f"[GeminiSTTBridge] enable_voice={self.settings.enable_voice}, "
             f"output_mode={self.settings.output_mode}, fail={self.settings.on_stt_fail}, "

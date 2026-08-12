@@ -124,3 +124,23 @@ api_key_header: bearer
 
 - 原版作者：[Weather-719](https://github.com/Weather-719)
 - 原版仓库：https://github.com/Weather-719/astrbot_plugin_Gemini_STT
+
+---
+
+## 📋 更新日志
+
+### v2.3.7（2026-08-12）— 代码结构重构
+
+> 行为与 v2.3.6 保持一致（除下方列出的修复外），如遇异常建议先尝试重载插件。
+
+**架构重构（无行为变化）：**
+- 将原 1682 行单文件 `main.py` 拆分为 8 个职责单一模块：`settings`（配置快照与校验）、`security`（SSRF/本地路径安全）、`transcript`（转写清洗/幻觉检测）、`audio_convert`（格式检测与转码）、`cleanup`（临时文件清理）、`stt_client`（Gemini/Whisper 客户端）、`audio_source`（音频获取/下载/兜底）+ `main.py` 门面
+- 消除 4 处重复逻辑：重试退避、URL 基址规范化、音频下载、认证头构建
+- 为安全判定、转写处理、URL 构建等纯函数补充 137 个单元测试（`python -m unittest discover -s tests`）
+
+**修复：**
+- rich 模式提示词编号 1,2,3,4,6 → 1,2,3,4,5（原遗漏第 5 项）
+- 空白语音幻觉检测标记改为从实际提示词派生（原硬编码标记与提示词不匹配，检测基本失效）
+- 配置枚举校验：`stop_event_timing`/`on_stt_fail`/`output_mode`/`stt_provider`/`api_key_header` 非法值将告警并回退默认（原静默失效）
+- rich 模式转写提取时清理多余 Markdown 标记字符（`**` 残留）
+- 临时文件判断先做路径归一化（`realpath`），避免大小写/符号链接导致误判
