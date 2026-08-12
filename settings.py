@@ -141,7 +141,7 @@ class PluginSettings:
             api_key_header=api_key_header,
             stt_provider=stt_provider,
             enable_punctuation=bool(cfg.get("enable_punctuation", False)),
-            punctuation_provider_id=cfg.get("punctuation_provider_id") or "",
+            punctuation_provider_id=str(cfg.get("punctuation_provider_id") or "").strip(),
             path_remap_from=cfg.get("path_remap_from") or "",
             path_remap_to=cfg.get("path_remap_to") or "",
             use_current_conversation=bool(cfg.get("use_current_conversation", True)),
