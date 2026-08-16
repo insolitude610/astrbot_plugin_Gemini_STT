@@ -21,15 +21,15 @@ from urllib.parse import urlparse
 
 import aiohttp
 
-import security
-from audio_convert import (
+from . import security
+from .audio_convert import (
     PILK_AVAILABLE,
     convert_silk_to_pcm,
     convert_to_mp3,
     detect_audio_format,
     encode_mp3_b64_with_limit,
 )
-from settings import PluginSettings
+from .settings import PluginSettings
 
 
 class StaticResolver(aiohttp.abc.AbstractResolver):

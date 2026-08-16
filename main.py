@@ -13,16 +13,16 @@ from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api import AstrBotConfig, logger
 
-from settings import PluginSettings
-from transcript import (
+from .settings import PluginSettings
+from .transcript import (
     clean_transcript,
     extract_plain_transcript,
     is_instruction_hallucination,
 )
-from audio_convert import PILK_AVAILABLE, find_ffmpeg
-from cleanup import TempCleaner
-from stt_client import STTClient
-from audio_source import AudioSourceResolver
+from .audio_convert import PILK_AVAILABLE, find_ffmpeg
+from .cleanup import TempCleaner
+from .stt_client import STTClient
+from .audio_source import AudioSourceResolver
 
 
 @register("Gemini_STT", "政ひかりはる", "Gemini语音转写桥接到框架LLM", "2.3.7")

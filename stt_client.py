@@ -15,7 +15,7 @@ from typing import Callable, Optional
 
 import aiohttp
 
-from settings import PluginSettings
+from .settings import PluginSettings
 
 
 class RetryableStatusError(Exception):
